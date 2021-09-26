@@ -85,7 +85,7 @@ public class MFontSType {
     }
 
     public String toString() {
-        return "文字内容：" + this.getText() + "  字体名：" + fontName + "  字体大小：" + fontSize + "  字间距：" + fontAlignment +
+        return "文字内容：" + text + "  字体名：" + fontName + "  字体大小：" + fontSize + "  字间距：" + fontAlignment +
                 "  粗体：" + isBold + "  斜体：" + isItalic + "  颜色：" + color;
     }
 }

@@ -1,8 +1,8 @@
 package nju.wordparser.utils;/*
- * @ClassName WPSParser
+ * @ClassName Tmp
  * @Description TODO
  * @Author ling
- * @Date 2021/9/25 20:34
+ * @Date 2021/9/26 10:44
  * @Version 1.0
  */
 
@@ -10,88 +10,142 @@ import nju.wordparser.entity.*;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.model.PicturesTable;
 import org.apache.poi.hwpf.usermodel.*;
-import sun.misc.BASE64Encoder;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 public class WPSParser {
-    BASE64Encoder base64Encoder = new BASE64Encoder();
-    InputStream inputStream;
-    HWPFDocument hwpfDocument;
-    PicturesTable picturesTable;
-    TableIterator tableIterator;
-    Range range;
-    List<MParagraph> mParagraphs;
-    List<MPicture> mPictures;
-    List<MTable> mTables;
-    List<MTitle> mTitles;
+    Base64.Encoder encoder = Base64.getEncoder();
 
-    public void init(File file) throws IOException {
-        inputStream = new FileInputStream(file);
-        hwpfDocument = new HWPFDocument(inputStream);
-        range = hwpfDocument.getRange();
-        picturesTable = hwpfDocument.getPicturesTable();
-        tableIterator = new TableIterator(range);
+    public MDocument parse(File file) {
+        MDocument mDocument = new MDocument();
+        List<MParagraph> mParagraphs = new ArrayList<>();
+        List<MPicture> mPictures = new ArrayList<>();
+        List<MTable> mTables = new ArrayList<>();
+        List<MTitle> mTitles = new ArrayList<>();
+        HWPFDocument hwpfDocument = null;
+        try {
+            hwpfDocument = new HWPFDocument(new FileInputStream(file));
+        } catch (IOException e) {
+            throw new RuntimeException("读取文档为HWPFDocument失败: " + file.getName());
+        }
+        Range range = hwpfDocument.getRange();
+        PicturesTable picturesTable = hwpfDocument.getPicturesTable();
+        TableIterator tableIterator = new TableIterator(range);
 
-        mParagraphs = new ArrayList<>();
-        mPictures = new ArrayList<>();
-        mTables = new ArrayList<>();
-        mTitles = new ArrayList<>();
+        for (int i = 0; i < range.numParagraphs(); i++) {
+            parseParagraph(mParagraphs, picturesTable, range.getParagraph(i), i);
+        }
+        parseTable(mTables, tableIterator);
+
+        int i = 0;
+        int tableIdx = 0;
+        while (i < mParagraphs.size()) {
+            MParagraph mParagraph = mParagraphs.get(i);
+            if (mParagraph.getInTable()) {
+                int numParagraphs = mTables.get(tableIdx).getNumParagraphs();
+                StringBuilder tableContent = new StringBuilder();
+                if (i != 0) {
+                    mTables.get(tableIdx).setTextBefore(mParagraphs.get(i - 1).getParagraphText());
+                    mTables.get(tableIdx).setParagraphBefore(mParagraphs.get(i - 1).getParagraphId());
+                } else {
+                    mTables.get(tableIdx).setTextBefore("");
+                    mTables.get(tableIdx).setParagraphBefore(-1);
+                }
+                for (; i < i + numParagraphs && mParagraphs.get(i).getInTable(); i++) {
+                    tableContent.append("\t").append(mParagraphs.get(i).getParagraphText());
+                    if (mParagraphs.get(i).getTableRowEnd()) {
+                        tableContent.append("\n");
+                    }
+                }
+                mTables.get(tableIdx).setTableContent(tableContent.toString());
+                mTables.get(tableIdx).setParagraphAfter(i);
+                mTables.get(tableIdx).setTextAfter(mParagraphs.get(i).getParagraphText());
+                tableIdx++;
+            } else if (mParagraph.getTitle()) {
+                //TODO 划分标题范围
+                MTitle mTitle = mParagraph.getmTitle();
+                mTitle.setStart(i + 1);
+                mTitle.setEnd(mParagraphs.size() - 1);
+                mTitles.add(mTitle);
+                i++;
+            } else {
+                i++;
+            }
+        }
+        for (MTitle mTitle : mTitles) {
+            mTitle.setStart(mTitle.getParagraphId() + 1);
+            mTitle.setEnd(mParagraphs.size() - 1);
+        }
+        mDocument.setmParagraphs(mParagraphs);
+        mDocument.setmPictures(mPictures);
+        mDocument.setmTitles(mTitles);
+        mDocument.setmTables(mTables);
+        return mDocument;
     }
 
-    public void parseParagraph(Paragraph paragraph, int i) {
+    private void parseParagraph(List<MParagraph> mParagraphs, PicturesTable picturesTable, Paragraph paragraph, int i) {
         MParagraph mParagraph = new MParagraph();
         MPrSType mPrSType = new MPrSType();
-
-        //段落格式
+        mParagraph.setMPictures(new ArrayList<>());
+        //TODO 段落格式
         mPrSType.setLineSpacing(paragraph.getLineSpacing().toInt());
         mPrSType.setFirstLineIndent(paragraph.getFirstLineIndent());
         mPrSType.setIndentFromLeft(paragraph.getIndentFromLeft());
         mPrSType.setIndentFromRight(paragraph.getIndentFromRight());
-        mPrSType.setLvl(paragraph.getLvl());
-
-        //段落详细信息
-        mParagraph.setParagraphId(i + 1);
-        mParagraph.setParagraphText(paragraph.text().trim());
-        mParagraph.setInTable(paragraph.isInTable());
-        mParagraph.setTableRowEnd(paragraph.isTableRowEnd());
+        mPrSType.setLvl(paragraph.getLvl());// 8为正文，但等于8不一定不是标题
         mParagraph.setMPrSType(mPrSType);
 
-        mParagraph.setMPictures(new ArrayList<>());
-        //段落是否为标题
-        if (paragraph.getLvl() < 8) {
+        //TODO 段落详细信息
+        mParagraph.setParagraphId(i);
+        mParagraph.setParagraphText(paragraph.text().trim()); //TODO 段落内容应该去掉空格和word中的特殊字符
+        mParagraph.setInTable(paragraph.isInTable());
+        mParagraph.setTableRowEnd(paragraph.isTableRowEnd());
+        mParagraph.setFontAlignment(paragraph.getFontAlignment());
+
+        //TODO 段落是否为标题
+        int justification = paragraph.getJustification();//居中：1，右对齐：2，左对齐：3，两端对齐：3
+        if (!paragraph.isInTable() && (paragraph.getLvl() != 8 || justification == 1)) {
             mParagraph.setTitle(true);
             MTitle mTitle = new MTitle();
             mTitle.setParagraphText(paragraph.text());
-            mTitle.setParagraphId(i + 1);
+            mTitle.setParagraphId(i);
             mTitle.setLineSpacing(paragraph.getLineSpacing().toInt());
             mTitle.setIndentFromLeft(paragraph.getIndentFromLeft());
             mTitle.setIndentFromRight(paragraph.getIndentFromRight());
             mTitle.setLvl(paragraph.getLvl());
             mTitle.setFirstLineIndent(paragraph.getFirstLineIndent());
+            mParagraph.setmTitle(mTitle);
         } else {
             mParagraph.setTitle(false);
+            mParagraph.setMTitle(null);
         }
-        //段落字单元解析
+
+        //TODO 段落字单元解析
         List<MFontSType> mFontSTypes = new ArrayList<>();
+        boolean flag = true;
         for (int j = 0; j < paragraph.numCharacterRuns(); j++) {
             CharacterRun run = paragraph.getCharacterRun(j);
+            run.getFontSize();
+            //TODO 段落图片解析
             if (picturesTable.hasPicture(run)) {
-                MPicture mPicture = parsePicture(run);
-                mPictures.add(mPicture);
+                MPicture mPicture = parsePicture(picturesTable, run);
+                mPicture.setParagraphId(i);
+                mPicture.setFontsTypeId(mFontSTypes.size());
                 mParagraph.mPictures.add(mPicture);
+                continue;
             }
             String text = run.text();
             if (null == text || "".equals(text) || "\n".equals(text) || "\r\n".equals(text)) continue;
 
-            //字体格式解析
+            //TODO 字体格式解析
+            text = text.trim().replace(" ", "");
             MFontSType mFontSType = new MFontSType();
-            mFontSType.setText(text.trim().replace(" ", ""));
+            mFontSType.setText(text);
             mFontSType.setColor(run.getColor());
             mFontSType.setFontSize(run.getFontSizeAsDouble());
             mFontSType.setFontName(run.getFontName());
@@ -99,6 +153,7 @@ public class WPSParser {
             mFontSType.setItalic(run.isItalic());
             mFontSType.setFontAlignment(run.getCharacterSpacing());
 
+            //合并相同格式
             if (mFontSTypes.size() != 0) {
                 if (mFontSTypes.get(mFontSTypes.size() - 1).equals(mFontSType)) {
                     mFontSTypes.get(mFontSTypes.size() - 1).setText(
@@ -107,30 +162,46 @@ public class WPSParser {
             } else {
                 mFontSTypes.add(mFontSType);
             }
+
+            //段落其余信息
+            if (flag) {
+                mParagraph.setBold(run.isBold());
+                mParagraph.setItalic(run.isItalic());
+                mParagraph.setFontName(run.getFontName());
+                mParagraph.setFontSize(run.getFontSize());
+                flag = false;
+            }
         }
         mParagraph.setMFontSTypes(mFontSTypes);
+
+        mParagraphs.add(mParagraph);
     }
 
-    public MPicture parsePicture(CharacterRun run) {
+    private MPicture parsePicture(PicturesTable picturesTable, CharacterRun run) {
         Picture picture = picturesTable.extractPicture(run, true);
         MPicture mPicture = new MPicture();
         mPicture.setHeight((float) picture.getHeight());
         mPicture.setWidth((float) picture.getWidth());
         mPicture.setSuggestFileExtension(picture.suggestFileExtension());
         mPicture.setFileName(picture.suggestFullFileName());
-        mPicture.setBase64Content(base64Encoder.encode(picture.getContent()));
-
+        mPicture.setBase64Content(encoder.encodeToString(picture.getContent()));
         return mPicture;
     }
 
-    public static void main(String[] args) throws IOException {
-        String filePath = "C:\\Users\\ling\\Desktop\\WordParser\\src\\main\\resources\\static\\test1.wps";
-        File file = new File(filePath);
-        WPSParser wpsParser = new WPSParser();
-        wpsParser.init(file);
-
-        for (int i = 0; i < wpsParser.range.numParagraphs(); i++) {
-            wpsParser.parseParagraph(wpsParser.range.getParagraph(i), i);
+    private void parseTable(List<MTable> mTables, TableIterator tableIterator) {
+        while (tableIterator.hasNext()) {
+            Table table = tableIterator.next();
+            MTable mTable = new MTable();
+            mTable.setNumParagraphs(table.numParagraphs());
+            mTables.add(mTable);
         }
+    }
+
+    public static void main(String[] args) {
+        Parser parser = new Parser();
+        String path = "C:\\Users\\ling\\Desktop\\WordParser\\src\\main\\resources\\static\\test2.wps";
+        File file = new File(path);
+        WPSParser wpsParser = new WPSParser();
+        wpsParser.parse(file);
     }
 }

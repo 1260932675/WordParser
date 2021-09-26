@@ -13,7 +13,11 @@ public class MParagraph {
     int paragraphId;//段落id
     Boolean isTableRowEnd;//是否到表尾
     Boolean isInTable;//是否在表格中
-
+    int fontAlignment;//字间距
+    String fontName;//字体名
+    int fontSize;//字体大小
+    Boolean isBold;//是否为粗体
+    Boolean isItalic;//是否为斜体
     Boolean isTitle;//是否是标题
     MPrSType mPrSType;//段落格式
     public List<MFontSType> mFontSTypes;//详细字体格式
@@ -90,5 +94,77 @@ public class MParagraph {
 
     public void setMTitle(MTitle mTitle) {
         this.mTitle = mTitle;
+    }
+
+    public int getFontAlignment() {
+        return fontAlignment;
+    }
+
+    public void setFontAlignment(int fontAlignment) {
+        this.fontAlignment = fontAlignment;
+    }
+
+    public Boolean getBold() {
+        return isBold;
+    }
+
+    public void setBold(Boolean bold) {
+        isBold = bold;
+    }
+
+    public Boolean getItalic() {
+        return isItalic;
+    }
+
+    public void setItalic(Boolean italic) {
+        isItalic = italic;
+    }
+
+    public MPrSType getmPrSType() {
+        return mPrSType;
+    }
+
+    public void setmPrSType(MPrSType mPrSType) {
+        this.mPrSType = mPrSType;
+    }
+
+    public List<MFontSType> getmFontSTypes() {
+        return mFontSTypes;
+    }
+
+    public void setmFontSTypes(List<MFontSType> mFontSTypes) {
+        this.mFontSTypes = mFontSTypes;
+    }
+
+    public List<MPicture> getmPictures() {
+        return mPictures;
+    }
+
+    public void setmPictures(List<MPicture> mPictures) {
+        this.mPictures = mPictures;
+    }
+
+    public MTitle getmTitle() {
+        return mTitle;
+    }
+
+    public void setmTitle(MTitle mTitle) {
+        this.mTitle = mTitle;
+    }
+
+    public String getFontName() {
+        return fontName;
+    }
+
+    public void setFontName(String fontName) {
+        this.fontName = fontName;
+    }
+
+    public int getFontSize() {
+        return fontSize;
+    }
+
+    public void setFontSize(int fontSize) {
+        this.fontSize = fontSize;
     }
 }
