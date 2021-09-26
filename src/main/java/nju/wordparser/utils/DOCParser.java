@@ -26,6 +26,8 @@ public class DOCParser {
     List<MTitle> mTitles;
 
 
+
+
     public void init(File file) throws IOException {
         inputStream = new FileInputStream(file);
         hwpfDocument = new HWPFDocument(inputStream);
@@ -38,7 +40,7 @@ public class DOCParser {
         mTables = new ArrayList<>();
         mTitles = new ArrayList<>();
 
-        parseTable();
+
     }
 
     public void parseParagraph (int paraIndex){
@@ -65,17 +67,21 @@ public class DOCParser {
         mParagraph.setInTable(paragraph.isInTable());
         mParagraph.setTableRowEnd(paragraph.isTableRowEnd());
 
+
+
         //标题设置
-        if(paragraph.getIlvl()<9) {
+        if(paragraph.getLvl()<9) {
             mParagraph.setTitle(true);
             MTitle mTitle = new MTitle();
             mTitle.setParagraphId(paraIndex+1);
             mTitle.setParagraphText(paragraph.text());
             //设置起止
-            mTitle.setStart(paraIndex);
+            mTitle.setStart(paraIndex+1);
+            //将当前标题范围设置至文章最后一段,如果之后还有标题会迭代结尾位置
+            mTitle.setEnd(range.numParagraphs());
             if(mTitles.size()>0){
                 //设置上一个标题的结尾
-                mTitles.get(mTitles.size()-1).setEnd(paraIndex-1);
+                mTitles.get(mTitles.size()-1).setEnd(paraIndex);
             }
             mTitle.setFirstLineIndent(paragraph.getFirstLineIndent());
             mTitle.setIndentFromLeft(paragraph.getIndentFromLeft());
@@ -151,23 +157,47 @@ public class DOCParser {
     }
 
     public void parseTable(){
+        int tableEndIndex = 0;
+        boolean intable = false;
         //是否解析表格
         while (tableIterator.hasNext()){
+            MTable mTable = new MTable();
             Table table = (Table) tableIterator.next();
             StringBuilder content = new StringBuilder("");
+            //获取表格起止位置
+            for(int x = tableEndIndex; x < range.numParagraphs(); x++){
+                if(range.getParagraph(x).isInTable() && (!intable)){
+                    intable = true;
+                    if(x>0) {
+                        Paragraph paraBefore = range.getParagraph(x-1);
+                        mTable.setParagraphBefore(x - 1);
+                        mTable.setTextBefore(paraBefore.text());
+                    }
+                }else if ((!range.getParagraph(x).isInTable()) && intable){
+                    intable=false;
+                    tableEndIndex=x;
+                    mTable.setParagraphAfter(x);
+                    mTable.setTextAfter(range.getParagraph(x).text());
+                    break;
+                }
+            }
             for (int i = 0; i < table.numRows(); i++){
                 TableRow tableRow = table.getRow(i);
                 for ( int j = 0; j < tableRow.numCells(); j++){
                     TableCell tableCell = tableRow.getCell(j);
+                    StringBuilder cellText = new StringBuilder("");
                     for ( int k = 0; k < tableCell.numParagraphs(); k++){
                         Paragraph paragraph = tableCell.getParagraph(k);
+                        cellText.append(paragraph.text());
                         //表格段落解析
-                        content.append(paragraph.text()+'\t');
-
                     }
-                    content.append('\n');
+                    content.append(cellText);
+                    content.append('\t');
                 }
+                content.append('\n');
             }
+            mTable.setTableContent(content.toString());
+            mTables.add(mTable);
         }
     }
 
@@ -178,7 +208,21 @@ public class DOCParser {
         docParser.init(file);
 
         for ( int i = 0 ; i < docParser.range.numParagraphs() ; i++){
-
+            docParser.parseParagraph(i);
+        }
+        docParser.parseTable();
+        for(MParagraph p : docParser.mParagraphs){
+            for(MFontSType f : p.mFontSTypes){
+                System.out.println(f.toString());
+                System.out.println("------------------------------");
+            }
+        }
+        for(MTable t : docParser.mTables){
+            System.out.println(t.getParagraphBefore()+":"+t.getTextBefore());
+            System.out.println(t.getParagraphAfter()+":"+t.getTextAfter());
+        }
+        for (MTitle tt : docParser.mTitles){
+            System.out.println(tt.toString());
         }
     }
 
