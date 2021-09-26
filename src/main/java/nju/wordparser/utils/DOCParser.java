@@ -216,7 +216,7 @@ public class DOCParser {
     }
 
     public static void main(String[] args) throws IOException {
-        String filepath = "src/main/resources/static/(2012)辰民初字第3445号-民事判决书（一审民事案件用）-1.doc";
+        String filepath = "src/main/resources/static/1.doc";
         File file = new File(filepath);
         DOCParser docParser = new DOCParser();
         docParser.init(file);

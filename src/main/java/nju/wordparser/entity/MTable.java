@@ -12,6 +12,7 @@ public class MTable {
     int paragraphBefore;//表格前的段落
     int paragraphAfter;//表格后的段落
     String tableContent;//表格文本内容
+    int numParagraphs;//由多少个段落组成
 
     public String getTextBefore() {
         return textBefore;
@@ -51,6 +52,14 @@ public class MTable {
 
     public void setTableContent(String tableContent) {
         this.tableContent = tableContent;
+    }
+
+    public int getNumParagraphs() {
+        return numParagraphs;
+    }
+
+    public void setNumParagraphs(int numParagraphs) {
+        this.numParagraphs = numParagraphs;
     }
 
     public String toString() {

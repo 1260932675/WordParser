@@ -15,6 +15,7 @@ public class MPicture {
     String suggestFileExtension;//建议使用的扩展名
     String base64Content;//使用base64编码后的数据
     String fileName;//文件名
+    int fontsTypeId;//字格式id
 
     public int getParagraphId() {
         return paragraphId;
@@ -78,6 +79,14 @@ public class MPicture {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    public int getFontsTypeId() {
+        return fontsTypeId;
+    }
+
+    public void setFontsTypeId(int fontsTypeId) {
+        this.fontsTypeId = fontsTypeId;
     }
 
     public String toString() {
