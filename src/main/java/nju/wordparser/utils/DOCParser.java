@@ -102,6 +102,12 @@ public class DOCParser {
             if(picturesTable.hasPicture(characterRun)){
                 Picture picture = picturesTable.extractPicture(characterRun,true);
                 MPicture mPicture = parsePicture(picture);
+                if(j>0) {
+                    mPicture.setTextBefore(paragraph.getCharacterRun(j - 1).text());
+                }
+                if(j+1<paragraph.numCharacterRuns()){
+                    mPicture.setTextAfter(paragraph.getCharacterRun(j+1).text());
+                }
                 mPictures.add(mPicture);
                 paraPictures.add(mPicture);
             }
@@ -153,7 +159,7 @@ public class DOCParser {
         mPicture.setSuggestFileExtension(picture.suggestFileExtension());
         mPicture.setFileName(picture.suggestFullFileName());
         mPicture.setBase64Content(Base64.getEncoder().encodeToString(picture.getContent()));
-        return null;
+        return mPicture;
     }
 
     public void parseTable(){
@@ -223,6 +229,10 @@ public class DOCParser {
         }
         for (MTitle tt : docParser.mTitles){
             System.out.println(tt.toString());
+        }
+
+        for(MPicture pic : docParser.mPictures){
+            System.out.println(pic.toString());
         }
     }
 
