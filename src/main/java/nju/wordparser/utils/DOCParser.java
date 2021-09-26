@@ -20,6 +20,7 @@ public class DOCParser {
     PicturesTable picturesTable;
     TableIterator tableIterator;
     Range range;
+
     List<MParagraph> mParagraphs;
     List<MPicture> mPictures;
     List<MTable> mTables;
@@ -40,6 +41,11 @@ public class DOCParser {
         mTables = new ArrayList<>();
         mTitles = new ArrayList<>();
 
+        for ( int i = 0 ; i < range.numParagraphs() ; i++){
+            parseParagraph(i);
+        }
+        parseTable();
+
 
     }
 
@@ -58,7 +64,7 @@ public class DOCParser {
         mPrSType.setIndentFromLeft(paragraph.getIndentFromLeft());
         mPrSType.setIndentFromRight(paragraph.getIndentFromRight());
 
-        mParagraph.setMPrSType(mPrSType);
+
 
         //段落详细信息
         mParagraph.setMPrSType(mPrSType);
@@ -70,9 +76,10 @@ public class DOCParser {
 
 
         //标题设置
-        if(paragraph.getLvl()<9) {
+        if(paragraph.getLvl()<8) {
             mParagraph.setTitle(true);
             MTitle mTitle = new MTitle();
+            mTitle.setLvl(paragraph.getLvl());
             mTitle.setParagraphId(paraIndex+1);
             mTitle.setParagraphText(paragraph.text());
             //设置起止
@@ -102,6 +109,7 @@ public class DOCParser {
             if(picturesTable.hasPicture(characterRun)){
                 Picture picture = picturesTable.extractPicture(characterRun,true);
                 MPicture mPicture = parsePicture(picture);
+                mPicture.setParagraphId(paraIndex+1);
                 if(j>0) {
                     mPicture.setTextBefore(paragraph.getCharacterRun(j - 1).text());
                 }
