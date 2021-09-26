@@ -57,6 +57,9 @@ public class WPSParser {
                     mTables.get(tableIdx).setParagraphBefore(-1);
                 }
                 for (; i < i + numParagraphs && mParagraphs.get(i).getInTable(); i++) {
+                    if (null != mParagraph.getmPictures() && mParagraph.getmPictures().size() != 0) {
+                        mPictures.addAll(mParagraph.getmPictures());
+                    }
                     tableContent.append("\t").append(mParagraphs.get(i).getParagraphText());
                     if (mParagraphs.get(i).getTableRowEnd()) {
                         tableContent.append("\n");
@@ -67,13 +70,19 @@ public class WPSParser {
                 mTables.get(tableIdx).setTextAfter(mParagraphs.get(i).getParagraphText());
                 tableIdx++;
             } else if (mParagraph.getTitle()) {
-                //TODO 划分标题范围
+                //TODO
+                if (null != mParagraph.getmPictures() && mParagraph.getmPictures().size() != 0) {
+                    mPictures.addAll(mParagraph.getmPictures());
+                }
                 MTitle mTitle = mParagraph.getmTitle();
                 mTitle.setStart(i + 1);
                 mTitle.setEnd(mParagraphs.size() - 1);
                 mTitles.add(mTitle);
                 i++;
             } else {
+                if (null != mParagraph.getmPictures() && mParagraph.getmPictures().size() != 0) {
+                    mPictures.addAll(mParagraph.getmPictures());
+                }
                 i++;
             }
         }
@@ -85,6 +94,7 @@ public class WPSParser {
         mDocument.setmPictures(mPictures);
         mDocument.setmTitles(mTitles);
         mDocument.setmTables(mTables);
+        System.out.println(mPictures.size());
         return mDocument;
     }
 
@@ -109,7 +119,7 @@ public class WPSParser {
 
         //TODO 段落是否为标题
         int justification = paragraph.getJustification();//居中：1，右对齐：2，左对齐：3，两端对齐：3
-        if (!paragraph.isInTable() && (paragraph.getLvl() != 8 || justification == 1)) {
+        if (!paragraph.isInTable() && (paragraph.getLvl() != 9 || justification == 1)) {
             mParagraph.setTitle(true);
             MTitle mTitle = new MTitle();
             mTitle.setParagraphText(paragraph.text());
