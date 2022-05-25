@@ -37,7 +37,7 @@ public class DOCParser {
         tableIterator = new TableIterator(range);
 
         mParagraphs = new ArrayList<>();
-        mPictures = new ArrayList<>();
+        mPictures = new ArrayList<>()
         mTables = new ArrayList<>();
         mTitles = new ArrayList<>();
 
